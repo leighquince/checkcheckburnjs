@@ -1,0 +1,13 @@
+{
+  "name": "checkcheckburn",
+  "version": "1.0.0",
+  "description": "poker bot for aigames.com",
+  "main": "Grunt.js",
+  "dependencies": {
+    "grunt-contrib-compress": "^0.11.0",
+    "grunt": "^0.4.5"
+  },
+  "devDependencies": {},
+  "author": "",
+  "license": "ISC"
+}
