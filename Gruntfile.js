@@ -3,11 +3,11 @@ module.exports = function(grunt) {
 
 
     var getVersion = function() {
-        var version = grunt.file.readJSON("current_version.json");
-        version.version = version.version + 1;
+        var currentVersion = grunt.file.readJSON("current_version.json");
+        currentVersion.version = currentVersion.version + 1;
         grunt.file.delete("current_version.json");
-        grunt.file.write("current_version.json", JSON.stringify(version));
-        return (version.version + "").length == 1 ? "0" + version.version : version.version;
+        grunt.file.write("current_version.json", JSON.stringify(currentVersion));
+        return (currentVersion.version + "").length == 1 ? "0" + currentVersion.version : currentVersion.version;
     };
 
 
@@ -20,12 +20,32 @@ module.exports = function(grunt) {
                         return 'versions/' + botName + '_version_' + getVersion() + '.zip';
                     }
                 },
-                files: [{expand: true, cwd: 'bot/', src: ['**']},]
+                files: [{
+                    expand: true,
+                    cwd: 'poker_bot/',
+                    src: ['**']
+                }, ]
+            }
+        },
+        mocha: {
+            test: {
+                src: ['test/**.*'],
+            },
+            options: {
+                run: true,
+            },
+        },
+        watch: {
+            all: {
+                files: ['poker_bot/*', 'test/*'],
+                tasks: ['mocha']
             }
         }
     });
 
     grunt.loadNpmTasks('grunt-contrib-compress');
+    grunt.loadNpmTasks('grunt-mocha');
+    grunt.loadNpmTasks('grunt-contrib-watch');
 
     grunt.registerTask('default', ['compress']);
 
