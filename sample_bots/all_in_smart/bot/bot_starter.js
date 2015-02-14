@@ -19,25 +19,15 @@ var BotBetStratergy = require('../bot/bot_bet_stratergy').BotBetStratergy;
     };
 
     BotStarter.prototype.getMove = function(state, timeOut) {
-        state.timeBank += state.timePerMove;
-        var startTime = new Date();
-        var move;
-        if (state.table.length === 0) {
-            move = BotBetStratergy.preFlop(state, timeOut);
-        } else {
-            move = BotBetStratergy.postFlop(state, timeOut);
+        if(state.table.length === 0)
+        {
+            return BotBetStratergy.preFlop(state, timeOut);
         }
-        var endTime = new Date();
-        state.timeBank -= (endTime - startTime);
-        return move;
+
+        return BotBetStratergy.postFlop(state, timeOut);
     };
 
-
-    BotStarter.prototype.log = function(string) {
-        process.stderr.write(string + '\n');
-    };
-
-
+   
 
 
 

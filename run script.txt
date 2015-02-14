@@ -1,1 +1,1 @@
-java nl.starapple.backend.RunPoker 2000 "node /Users/leighquince/Documents/Development/work-spaces/aigames/omaha/poker_bot/Bot.js" "node /Users/leighquince/Documents/Development/work-spaces/aigames/omaha/poker_bot/Bot.js"  2>err.txt 1>out.txt
+java nl.starapple.backend.RunPoker 2000 "node /Users/leighquince/Documents/Development/work-spaces/aigames/omaha/poker_bot/Bot.js" "node /Users/leighquince/Documents/Development/work-spaces/aigames/omaha/sample_bots/all_in_smart/Bot.js"  2>err.txt 1>out.txt

@@ -28,6 +28,8 @@ var helper = require('../helper');
             raiseFold: 0,
             raiseRaise: 0,
             actions: 0,
+            raiseRaiseFold: 0,
+            turnsThisRound: 0,
             pureRaiseAmounts: [],
             raiseOfBlind: [],
             raiseOfMaxRaise: [],
@@ -50,6 +52,10 @@ var helper = require('../helper');
         this.turn.name = TURN;
         this.river.name = RIVER;
 
+        //keep track of some of my basic stats
+        this.myOverall = new PointInMatchStats();
+        this.myOverall.name = OVERALL;
+
 
         this.handsWon = 0;
         this.handsLost = 0;
@@ -62,9 +68,12 @@ var helper = require('../helper');
     //Tight - will call pre flop, raise and see through to match end
     //Pussy - will fold when raised unless seeing through the end - will have a fold rate of more than 85%
     //unknown - have not played enough hands yet to get a read
+    //checky all in bot will raise until you raise then fold
 
-    BotOpponentTracker.PlayerType = new helper.Enum("ALL_IN_BOT", "AGRESSIVE", "TIGHT", "PUSSY", "UNKNOWN");
+    BotOpponentTracker.PlayerType = new helper.Enum("ALL_IN_BOT", "AGRESSIVE", "TIGHT", "PUSSY", "UNKNOWN", "CHECKY_ALL_IN_BOT");
     BotOpponentTracker.RaiseAmountType = new helper.Enum("ABOVE", "AVERAGE", "BELOW", "UNKNOWN");
+
+    BotOpponentTracker.Advice = new helper.Enum("TRY", "YES", "NO", "UNKNOWN");
 
     BotOpponentTracker.prototype.increaseLosses = function() {
         this.handsLost++;
@@ -80,8 +89,31 @@ var helper = require('../helper');
         }
     };
 
+    BotOpponentTracker.prototype.trackMyMove = function() {
+        if (this.state.myMove) {
+            switch (this.state.myMove.getAction()) {
+                case FOLD:
+                    this.myOverall.folds++;
+
+                    break;
+                case CALL:
+                    this.myOverall.calls++;
+
+                    break;
+                case CHECK:
+                    this.myOverall.checks++;
+
+                case RAISE:
+                    this.myOverall.raises++;
+                    break;
+            }
+            this.myOverall.actions++;
+        }
+    };
+
     BotOpponentTracker.prototype.track = function() {
         var pointInMatch;
+
         switch (this.state.getTable().length) {
             case 0:
                 pointInMatch = this.preFlop;
@@ -119,6 +151,7 @@ var helper = require('../helper');
         }
         pointInMatch.actions++;
         this.overall.actions++;
+
 
         if (this.state.myMove) {
             this.trackPointInMatch(pointInMatch);
@@ -197,7 +230,34 @@ var helper = require('../helper');
         average = average / array.length;
         return average;
     };
+
+
+    BotOpponentTracker.prototype.canBeBullied = function() {
+
+        if (this.myOverall.raises < 5) {
+            this.log("TRY BULLY :my raises " + this.myOverall.raises);
+            return BotOpponentTracker.Advice.TRY;
+
+        } else {
+            if (this.overall.raiseFold / this.myOverall.raises > 0.6) {
+                this.log("YES BULLY");
+                return BotOpponentTracker.Advice.YES;
+            } else if (this.overall.raiseFold / this.myOverall.raises >= 0.55) {
+                this.log(">0,55 TRY BULLY");
+                return BotOpponentTracker.Advice.TRY;
+            }
+        }
+
+        this.log("NO BULLY");
+        return BotOpponentTracker.Advice.NO;
+    };
     BotOpponentTracker.prototype.analysePlayerType = function(pointInMatch) {
+        if (this.overall.raiseRaiseFold / (this.state.getRound() - 1) >= 0.6) {
+            this.log(pointInMatch.name + ": Player identified as CHECKY_ALL_IN_BOT");
+            pointInMatch.playerType = BotOpponentTracker.PlayerType.CHECKY_ALL_IN_BOT;
+            return;
+
+        }
         if (pointInMatch.actions < 5) {
             return;
         }
@@ -208,8 +268,7 @@ var helper = require('../helper');
         var foldPercentage = pointInMatch.folds / pointInMatch.actions;
 
         var forcedActions = pointInMatch.callCheck + pointInMatch.callRaise +
-            pointInMatch.checkRaise + pointInMatch.checkCheck +
-            pointInMatch.raiseCall + pointInMatch.raiseFold +
+            pointInMatch.checkRaise + pointInMatch.raiseCall + pointInMatch.raiseFold +
             pointInMatch.raiseRaise;
 
         if (raisePercentage >= 0.8) {
@@ -230,6 +289,8 @@ var helper = require('../helper');
             pointInMatch.playerType = BotOpponentTracker.PlayerType.PUSSY;
             return;
         }
+
+
 
         // if ((raisePercentage >= 0.2 && raisePercentage <= 0.3) &&
         //     (callPercentage >= 0.2 && callPercentage <= 0.3) &&
@@ -283,6 +344,14 @@ var helper = require('../helper');
             this.state.opponentMove.getAction() === CHECK) {
             pointInMatch.checkCheck++;
         }
+
+        if (this.state.opponentPreviousMove && this.state.opponentPreviousMove.getAction() === RAISE &&
+            this.state.myMove.getAction() === RAISE && this.state.opponentMove.getAction() === FOLD) {
+            pointInMatch.raiseRaiseFold++;
+        }
+
+
+
 
     };
 

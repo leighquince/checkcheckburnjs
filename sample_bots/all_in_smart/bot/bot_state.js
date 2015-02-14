@@ -12,11 +12,13 @@ var helper = require('../helper');
 var HandOmaha = require('../poker/hand_omaha').HandOmaha;
 var Card = require('../poker/card').Card;
 var PokerMove = require('../poker/poker_move').PokerMove;
-var BotOpponentTracker = require('./bot_opponent_tracker').BotOpponentTracker;
 
 
 (function() {
     'use strict';
+
+
+
 
     var BotState = function(bot) {
         this.debugging = false;
@@ -27,8 +29,8 @@ var BotOpponentTracker = require('./bot_opponent_tracker').BotOpponentTracker;
         this.myStack = 0;
         this.opponentStack = 0;
         this.pot = 0;
-        this.opponentMove = null;
-        this.myMove = null;
+        this.opponentMove = "";
+        this.myMove = "";
         this.currentBet = 0;
         this.hand = null;
         this.table = [];
@@ -39,11 +41,6 @@ var BotOpponentTracker = require('./bot_opponent_tracker').BotOpponentTracker;
         this.timeBank = 0;
         this.timePerMove = 0;
         this.handsPerLevel = 0;
-        this.opponentTracker = new BotOpponentTracker(this);
-        this.myBotTracker = new BotOpponentTracker(this);
-        this.myPreviousMove = null;
-        this.opponentPreviousMove = null;
-        this.winPercentage = null;
 
     };
 
@@ -98,10 +95,6 @@ var BotOpponentTracker = require('./bot_opponent_tracker').BotOpponentTracker;
             this.table.forEach(function(card) {
                 that.tableBitPattern.push(card.getBitPattern());
             });
-            this.opponentTracker.getPointInMatchStats().turnsThisRound = 0;
-            this.winPercentage = null;
-            this.myMove = null;
-            this.opponentMove = null;
         } else {
             this.log("Unknown match command: %s %s\n", [key, value]);
         }
@@ -123,13 +116,9 @@ var BotOpponentTracker = require('./bot_opponent_tracker').BotOpponentTracker;
                 var cards = this.parseCards(amount);
                 this.hand = new HandOmaha(cards[0], cards[1], cards[2], cards[3]);
             } else if (key === "wins") {
-                this.opponentTracker.increaseLosses(this);
+                // Your winnings, not stored
             } else {
-                this.myPreviousMove = this.myMove;
                 this.myMove = new PokerMove(bot, key, amount);
-                this.myStack -= parseInt(amount);
-                this.opponentTracker.getPointInMatchStats().turnsThisRound++;
-                this.opponentTracker.trackMyMove();
             }
         } else { // assume it's the opponent
             if (key === "stack") { // The amount in your opponent's starting stack
@@ -139,15 +128,9 @@ var BotOpponentTracker = require('./bot_opponent_tracker').BotOpponentTracker;
             } else if (key === "hand") {
                 // Hand of the opponent on a showdown, not stored
             } else if (key === "wins") {
-                this.opponentTracker.increaseWins(this);
+                // Opponent winnings, not stored
             } else { // The move your opponent did
-                this.opponentPreviousMove = this.opponentMove;
                 this.opponentMove = new PokerMove(bot, key, parseInt(amount));
-                //do i need to keep track of the bots stack here or am i informed
-                //everytime he makes a move? no idea?
-                this.opponentStack -= parseInt(amount);
-                this.opponentTracker.getPointInMatchStats().turnsThisRound++;
-                this.opponentTracker.track();
             }
         }
 
@@ -175,14 +158,10 @@ var BotOpponentTracker = require('./bot_opponent_tracker').BotOpponentTracker;
         this.pot = 0;
         this.opponentMove = null;
         this.myMove = null;
-        this.myPreviousMove = null;
-        this.opponentPreviousMove = null;
         this.amountToCall = 0;
         this.hand = null;
         this.table = [];
         this.tableBitPattern = [];
-        this.opponentTracker.preFlop.turnsThisRound = 0;
-        this.winPercentage = null;
     };
 
     BotState.prototype.getRound = function() {
